@@ -317,6 +317,54 @@ describe('session', function () {
     }, 1500);
   });
 
+  it('should be able to run subsequent successful query in a new session after failed cypher query, with observers ', function (done) {
+    // Given a fresh session
+    var sFail = driver.session();
+
+    // Execute a failing query
+    sFail.run("fail").subscribe({
+      onError: function() {
+        // Catch error and close session
+        sFail.close();
+
+        // Grab new session
+        var sSuccess = driver.session();
+
+        // Execute successful query
+        sSuccess.run("RETURN 1").subscribe({
+          onNext: function() {},
+          onCompleted: function() {
+            done();
+          },
+          onError: function(e) {
+            done.fail('Expected second query to be successful but got error: "' + e + '"');
+          }
+        })
+      }
+    })
+  });
+
+  it('should be able to run subsequent successful query in a new session after failed cypher query, with promises ', function (done) {
+    // Given a fresh session
+    var sFail = driver.session();
+
+    // Execute a failing query
+    sFail.run("fail").catch(function() {
+      // Catch error and close session
+      sFail.close();
+
+      // Grab new session
+      var sSuccess = driver.session();
+
+      // Execute successful query
+      sSuccess.run("RETURN 1").then(function() {
+          done();
+        }).catch(function(e) {
+          done.fail('Expected second query to be successful but got error: "' + e + '"');
+        })
+    })
+  });
+
   it('should fail nicely on unpackable values ', function (done) {
     // Given
     var unpackable = function(){throw Error()};
@@ -331,5 +379,3 @@ describe('session', function () {
       })
   });
 });
-
-
